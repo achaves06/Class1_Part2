@@ -16,34 +16,42 @@ def user_select_total_decks
   num_decks.to_i
 end
 
-def deal(player, playable_deck, cards_dealt)
+def deal!(player, playable_deck, cards_dealt)
   card = playable_deck.pop
+  cards_dealt << card
+  player[:cards] << card
+  player = calculate_total(player, card)
+end
+
+def calculate_total(player, card)
   card_rank = card[0]
   if card_rank == "A"
     player[:total] <= 10 ? player[:total] += 11 : player[:total] += 1
-    player[:ace] +=1
+    player[:ace] += 1
   elsif card_rank == "J" or card_rank == "Q" or card_rank == "K"
     player[:total] += 10
   else
     player[:total] += card_rank.to_i
   end
-  player[:cards] << card
-  cards_dealt << card
-  return player, playable_deck
+  return player
 end
 
 def show_cards(player)
-  puts "\n" + player[:name]
+  puts "\n" + player[:name] + "  - Total: " + player[:total].to_s
   player[:cards].each {|value| puts "  #{value}"}
 end
 
 def blackjack(user, dealer)
   if user[:total] == 21 || dealer[:total] == 21
-    puts "\nBlackjack!! You win!" if user[:total] == 21
     if dealer[:total] == 21
       show_cards(dealer)
-      puts "Computer blackjack, you lost..."
+      puts "You both have blackjacks, its' a push" if user[:total] == 21
+      puts "Dealer blackjack, you lost..." if user[:total] != 21
+    else
+      puts "\nBlackjack!! You win!"
     end
+    binding.pry
+    return true
   else
     return false
   end
@@ -74,14 +82,9 @@ def continue?
   gets.chomp != "quit"
 end
 
-def reset_counts(user, dealer)
-  user[:total] = 0
-  user[:ace] = 0
-  user[:cards] = []
-  dealer[:total] = 0
-  dealer[:ace] = 0
-  dealer[:cards] = []
-  return user, dealer
+def reset_counts!(user, dealer)
+  user.merge!(total: 0, ace: 0, cards: [])
+  dealer.merge!(total: 0, ace: 0, cards: [])
 end
 
 def add_cards_dealt_to_deck(cards_dealt,playable_deck)
@@ -103,18 +106,18 @@ dealer = {name: "Computer"}
 cards_dealt = []
 begin
   system 'clear'
-  user, dealer = reset_counts(user, dealer)
+  reset_counts!(user, dealer)
   2.times do
-    user, playable_deck = deal(user,playable_deck,cards_dealt)
+    user = deal!(user,playable_deck,cards_dealt)
     show_cards(user)
-    dealer, playable_deck = deal(dealer,playable_deck,cards_dealt)
+    dealer = deal!(dealer,playable_deck,cards_dealt)
     puts dealer[:cards].length < 2 ? "\nComputer: \n  X (covered)" : "\nComputer: \n  X (covered)\n #{dealer[:cards][1]}"
   end
-  unless blackjack(user,dealer)
+  unless blackjack(user, dealer)
     loop do
       puts "\n Press any key to hit or 's' to stay"
       break if gets.chomp == "s"
-      user, playable_deck = deal(user,playable_deck,cards_dealt)
+      user = deal!(user,playable_deck,cards_dealt)
       show_cards(user)
       user = if_ace_adjust_total_by_ten(user) if user[:total] > 21
       break if user[:total] > 21
@@ -122,7 +125,7 @@ begin
     if user[:total] <= 21
       show_cards(dealer)
       while dealer[:total] < 17
-        dealer, playable_deck = deal(dealer,playable_deck,cards_dealt)
+        dealer = deal!(dealer,playable_deck,cards_dealt)
         show_cards(dealer)
         dealer = if_ace_adjust_total_by_ten(dealer) if dealer[:total] > 21
       end
