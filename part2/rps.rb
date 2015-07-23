@@ -35,7 +35,7 @@ class Computer < Player
 end
 
 class Game
-  attr_accessor :score, :result, :winner
+  attr_accessor :score, :winner, :player, :computer
 
 
     SHAPES = [
@@ -79,84 +79,91 @@ class Game
 
   def initialize
     @score = {player: 0, computer: 0}
+    @computer = Computer.new
+    @player = Player.new(grab_name)
   end
+
 
   def get_choice
     puts "\nLet's play! Enter the number corresponding to one of the following options: \n \n1) Rock \n2) Paper \n3) Scissors\n"
     user_selection = gets.chomp
-    while !([*?1..?3].include? user_selection)
+    while !%w(1 2 3).include? user_selection
       puts "\nYour entry was invalid. Please enter 1,2, or 3\n1) Rock \n2) Paper \n3) Scissors"
       user_selection = gets.chomp
     end
     user_selection.to_i
   end
 
-  def show_result(player, computer)
-    if self.winner.class != NilClass # there was no error in compare
-      if self.winner.class != FalseClass
-        case self.winner.choice
-        when 1 #Rock
-          puts "\nRock breaks scissors"
-        when 2 #Paper
-          puts "\nPaper wraps rock"
-        when 3 #Scissors
-          puts "\nScissors cut paper"
-        else
-        end
-        puts "\n#{self.winner.name} wins"
-      else # there was no winner, it's a tie
-        puts "It's a tie..."
-      end
-      puts "   COMPUTER < ---------- >  #{player.name}   "
-      i = 0
-      11.times do
-         puts "#{SHAPES[computer.shape_index][i]}  #{SHAPES[player.shape_index][i]}"
-         i += 1
-      end
-    end
-  end
-
-
-  def compare(player, computer)
-    if player.choice == computer.choice
-      self.winner = false
-    else
-      case computer.choice
+  def show_result
+    if winner
+      case self.winner
       when 1 #Rock
-        player.choice == 2 ? self.winner = player : self.winner = computer
+        puts "\nRock breaks scissors"
       when 2 #Paper
-        player.choice == 3 ? self.winner = player : self.winner = computer
+        puts "\nPaper wraps rock"
       when 3 #Scissors
-        player.choice == 1 ? self.winner = player : self.winner = computer
-      else
-        puts "Oh Oh... We couldn't run the game"
-        self.winner = nil
+        puts "\nScissors cut paper"
+      end
+      puts "\n#{self.winner == :computer? ? @computer.name : @player.name} wins"
+    else # there was no winner, it's a tie
+      puts "It's a tie..."
+    end
+    puts "   COMPUTER < ---------- >  #{player.name}   "
+    i = 0
+    11.times do
+      puts "#{SHAPES[computer.shape_index][i]}  #{SHAPES[player.shape_index][i]}"
+      i += 1
+    end
+  end
+
+
+  def detect_winner
+    if @player.choice == @computer.choice
+      false
+    else
+      case @computer.choice
+      when 1 #Rock
+        @player.choice == 2 ? :player : :computer
+      when 2 #Paper
+        @player.choice == 3 ? :player : :computer
+      when 3 #Scissors
+        @player.choice == 1 ? :player : :computer
       end
     end
   end
 
-  # def update_score(winner)
-  #   binding.pry
-  #   self.score[winner.to_sym] += 1 if winner.class != NilClass || winner.class != FalseClass
-  # end
+  def update_score
+    binding.pry
+    self.score[self.winner] += 1 if self.winner
+  end
+
+  def show_score
+    puts "Running Total --- Computer: #{score[:computer]} #{@player.name}: #{score[:player]}"
+  end
 
   def exit?
-    puts "Enter 'quit' to exit or anything else to continue"
+    puts "\nEnter 'quit' to exit or anything else to continue"
     exit if gets.chomp == "quit"
   end
 
   def run
-    computer = Computer.new
-    puts "Welcome to Rock Paper Scissors. What's your name?"
-    player = Player.new(gets.chomp)
+
     loop do
-      player.choice = self.get_choice
-      computer.choice = computer.choose
-      self.compare(player, computer)
-    #  self.update_score(self.winner)
-      self.show_result(player, computer)
+      @player.choice = self.get_choice
+      @computer.choice = @computer.choose
+      self.winner = self.detect_winner
+      self.update_score
+      self.show_result
+      self.show_score
       self.exit?
     end
+  end
+
+  private
+
+  def grab_name
+    puts "Welcome to Rock Paper Scissors. What's your name?"
+    gets.chomp
   end
 end
 
