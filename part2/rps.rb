@@ -134,7 +134,7 @@ class Game
 
   def update_score
     binding.pry
-    self.score[self.winner] += 1 if self.winner
+    self.score[winner] += 1 if winner
   end
 
   def show_score
