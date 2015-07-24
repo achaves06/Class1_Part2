@@ -192,26 +192,5 @@ class Game
   end
 end
 
-## END OF CLASS
-
-# board = initialize_board
-# draw_board(board)
-# begin
-#   player_square = player_pick_square(board)
-#   board[player_square] = 'X'
-#   draw_board(board)
-#   strings_by_line = convert_lines_to_string(board)
-#   counts_by_line = total_counts_by_line(strings_by_line)
-#   find_winner(counts_by_line)
-#   position = computer_pick_square(board,strings_by_line)
-#   board[position]= 'O'
-#   draw_board(board)
-#   strings_by_line = convert_lines_to_string(board)
-#   counts_by_line = total_counts_by_line(strings_by_line)
-#   find_winner(counts_by_line)
-# end until empty_squares(board).empty?
-
-
-
 game = Game.new
 game.run
