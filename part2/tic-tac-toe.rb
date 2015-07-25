@@ -1,12 +1,19 @@
 require 'pry'
 
 module Autoselectable
-  # I was unable to get this to work without explicitly including return, why?
+
 
   def choose(board, total_counts_by_line, strings_by_line, empty_squares)
     @choice = nil
     empty_squares = empty_squares
     counts_by_line = total_counts_by_line
+    @choice = block_player_from_winning(counts_by_line, strings_by_line)
+    #nothing to win or block, then try to position to form a line
+    pick_square_when_player_cant_win(counts_by_line, strings_by_line, empty_squares) if @choice.nil?
+    @choice
+  end
+
+  def block_player_from_winning(counts_by_line, strings_by_line)
     counts_by_line.each do |line, count|
       if count[:user] == 0 && count[:computer] == 2 #computer can win then win
         square_index = strings_by_line[line].index(' ')
@@ -17,21 +24,23 @@ module Autoselectable
         @choice = Game::WINNING_LINES[line][square_index]
       end
     end
-    if @choice.nil? #nothing to win or block, then try to position to form a line
-      counts_by_line.each do |line, count|
-        if count[:user] == 0 && count[:computer] == 1 #computer can win then win
-          square_index = strings_by_line[line].index(' ')
-          @choice = Game::WINNING_LINES[line][square_index]
-          break
-        elsif count[:user] == 0 && count[:computer] == 0 #block user
-          square_index = strings_by_line[line].index(' ')
-          self.choice = Game::WINNING_LINES[line][square_index]
-        else
-          @choice = empty_squares.sample
-        end
-      end
-    end
     @choice
+  end
+
+  def pick_square_when_player_cant_win(counts_by_line, strings_by_line,empty_squares)
+    counts_by_line.each do |line, count|
+      if count[:user] == 0 && count[:computer] == 1 #computer can win then win
+        square_index = strings_by_line[line].index(' ')
+        @choice = Game::WINNING_LINES[line][square_index]
+        break
+      elsif count[:user] == 0 && count[:computer] == 0 #block user
+        square_index = strings_by_line[line].index(' ')
+        self.choice = Game::WINNING_LINES[line][square_index]
+      else
+        @choice = empty_squares.sample
+      end
+      @choice
+    end
   end
 end
 
@@ -41,6 +50,17 @@ class Player
   def initialize(name)
     @name = name
   end
+
+  def get_choice(empty_squares)
+    puts "Select an available square from 1 to 9"
+    selection = gets.chomp.to_i
+    until empty_squares.include? selection
+      puts "Your entry is not valid or has already been used. Please select an available square from 1-9"
+      selection = gets.chomp.to_i
+    end
+    selection
+  end
+
 end
 
 class Computer < Player
@@ -52,7 +72,7 @@ class Computer < Player
 end
 
 class Game
-  attr_accessor :board, :score, :computer, :player, :empty_squares, :strings_by_line, :total_counts_by_line, :winner
+  attr_accessor :board, :score, :computer, :player, :strings_by_line, :total_counts_by_line, :winner
   WINNING_LINES = [[1,2,3],[4,5,6],[7,8,9],[1,4,7],[1,5,9],[2,5,8],[3,6,9],[3,5,7]]
 
   def initialize
@@ -80,23 +100,13 @@ class Game
   end
 
   def empty_squares
-    self.empty_squares = board.select {|key,value| value == ' ' }.keys
-  end
-
-  def get_choice
-    puts "Select an available square from 1 to 9"
-    selection = gets.chomp.to_i
-    until empty_squares.include? selection
-      puts "Your entry is not valid or has already been used. Please select an available square from 1-9"
-      selection = gets.chomp.to_i
-    end
-    selection
+    board.select {|key,value| value == ' ' }.keys
   end
 
   def show_result
     if winner
-      puts "\n#{self.winner == :computer ? @computer.name : @player.name} wins"
-    else # there was no winner, it's a tie
+      puts "\n#{winner == :computer ? @computer.name : @player.name} wins"
+    else
       puts "It's a tie..."
     end
   end
@@ -155,32 +165,32 @@ class Game
   end
 
   def check_for_winner
-    self.convert_lines_to_string
-    self.calculate_total_counts_by_line
+    convert_lines_to_string
+    calculate_total_counts_by_line
     self.winner = detect_winner
   end
 
   def run
 
     loop do
-      self.initialize_board
+      initialize_board
       loop do
-        self.draw_board
-        @player.choice = self.get_choice
-        self.board[@player.choice]= 'X'
-        self.draw_board
-        self.check_for_winner
+        draw_board
+        @player.choice = @player.get_choice(empty_squares)
+        board[@player.choice]= 'X'
+        draw_board
+        check_for_winner
         break if winner || empty_squares.empty?
         @computer.choice = @computer.choose(self.board, self.total_counts_by_line, self.strings_by_line, self.empty_squares)
-        self.board[@computer.choice] = 'O'
-        self.draw_board
-        self.check_for_winner
+        board[@computer.choice] = 'O'
+        draw_board
+        check_for_winner
         break if winner || empty_squares.empty?
       end
-      self.update_score
-      self.show_result
-      self.show_score
-      self.exit?
+      update_score
+      show_result
+      show_score
+      exit?
     end
   end
 
